@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Earnings {
+  id                   Int      @id @default(autoincrement())
+  teleid               Int
+  tap_points           BigInt   @default(0)
+  ref_points           BigInt   @default(0)
+  checkin_points       BigInt   @default(0)
+  task                 String?
+  task_points          BigInt   @default(0)
+  game_deducted_points BigInt   @default(0)
+  game_played_time     BigInt   @default(0)
+  game_level           String?
+  current_streak       Int      @default(0)
+  restore_time         DateTime @default(now())
+  remaining_energy      Int      @default(2000)
+  recent_login         DateTime @default(now())
+  miner_level          Int      @default(0)
+  last_mine_date       DateTime?
+  created_at           DateTime @default(now())
+  updated_at          DateTime @default(now())
+
+  TgUser               TgUser?  @relation(fields: [teleid], references: [userid])
+
+  @@index([teleid])
+
+  @@map("earnings")
+}
+
+model TgUser {
+  id              Int      @id @default(autoincrement())
+  userid          Int      @unique
+  username        String?
+  first_name      String?
+  last_name       String?
+  language_code  String?
+  referral_code   String?
+  referral_by     String?
+  ref_claim       String   @default("N")
+  tg_premium_user String   @default("N")
+  created_date    DateTime @default(now())
+  modified_date   DateTime @default(now())
+
+  Earnings        Earnings[]
+
+  @@map("tg_users")
+}
