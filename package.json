@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
+        "start": "npm run db:generate && tsc && node dist/app.js",
         "dev": "nodemon app.ts",
         "db:generate": "prisma generate",
         "db:migrate-dev": "prisma migrate dev"

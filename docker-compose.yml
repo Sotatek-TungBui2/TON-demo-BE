@@ -1,7 +1,7 @@
 
 services:
   postgres:
-    image: postgres:lts
+    image: postgres:latest
     environment:
       POSTGRES_DB: taptap
       POSTGRES_USER: root
@@ -11,5 +11,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  ton-demo-be:
+    build: .
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
 volumes:
   postgres_data:
