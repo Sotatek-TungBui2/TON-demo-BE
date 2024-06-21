@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "earnings" (
     "id" SERIAL NOT NULL,
-    "teleid" INTEGER NOT NULL,
+    "teleid" BIGINT NOT NULL,
     "tap_points" BIGINT NOT NULL DEFAULT 0,
     "ref_points" BIGINT NOT NULL DEFAULT 0,
     "checkin_points" BIGINT NOT NULL DEFAULT 0,
@@ -25,7 +25,7 @@ CREATE TABLE "earnings" (
 -- CreateTable
 CREATE TABLE "tg_users" (
     "id" SERIAL NOT NULL,
-    "userid" INTEGER NOT NULL,
+    "userid" BIGINT NOT NULL,
     "username" TEXT,
     "first_name" TEXT,
     "last_name" TEXT,

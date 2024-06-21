@@ -10,7 +10,7 @@ datasource db {
 
 model Earnings {
   id                   Int      @id @default(autoincrement())
-  teleid               Int
+  teleid               BigInt
   tap_points           BigInt   @default(0)
   ref_points           BigInt   @default(0)
   checkin_points       BigInt   @default(0)
@@ -37,7 +37,7 @@ model Earnings {
 
 model TgUser {
   id              Int      @id @default(autoincrement())
-  userid          Int      @unique
+  userid          BigInt      @unique
   username        String?
   first_name      String?
   last_name       String?
