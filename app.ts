@@ -1,12 +1,11 @@
 import express from "express";
-import path from "path";
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import dot_env from "dotenv";
 import moment from "moment";
+import cors from "cors";
 import apiRouter from "./routes/api/main";
 import { ApiNext, ApiRequest, ApiResponse } from "./type";
-
 dot_env.config();
 
 const app = express();
@@ -15,7 +14,7 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-
+app.use(cors())
 app.use("/api", apiRouter);
 
 //404 handler
