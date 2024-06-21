@@ -5,6 +5,7 @@ import prisma from "../config/dbClient";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
+import { openWallet, transferAction } from "../services/ton";
 
 // function isMobileDevice(userAgent: string) {
 //     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -130,6 +131,38 @@ async function auth(req: ApiRequest, res: ApiResponse, next: ApiNext) {
     }
 }
 
+async function claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
+    try {
+        const toAddress = req.body.to;
+        if (!toAddress) throw ("Invalid address");
+        const earnings = await prisma.earnings.findFirst({
+            where: {
+                teleid: req.user.id,
+            }
+        })
+        if (!earnings || earnings!.tap_points.toString() === '0') throw ("Not enough point");
+        const wallet = await openWallet(process.env.MNEMONIC!.split(" "), Number(process.env.TESTNET) === 1);
+        const seqno = await transferAction(wallet, toAddress, earnings!.tap_points)
+        console.log('seqno', seqno);
+        console.log(earnings!.tap_points.toString());
+        await prisma.earnings.updateMany({
+            where: {
+                teleid: req.user.id
+            },
+            data: {
+                tap_points: BigInt(0)
+            }
+        })
+        return res.status(200).json({
+            statusCode: 200,
+            status: "success",
+            message: "Successfully claimed",
+        });
+    } catch (err) {
+        next(err);
+    }
+}
 export default {
     auth,
+    claim,
 };

@@ -10,7 +10,7 @@ async function upscore(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         }
         const teleid = tgUser.id;
         const userDbDetails = await prisma.earnings.findFirst({ where: { teleid } });
-
+        
         const updateData = {
             tap_points: points,
             remaining_energy: remaining_energy,

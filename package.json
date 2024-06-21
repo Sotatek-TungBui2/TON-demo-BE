@@ -10,6 +10,8 @@
     },
     "dependencies": {
         "@prisma/client": "^5.15.1",
+        "@ton/core": "^0.56.3",
+        "@ton/ton": "^13.11.2",
         "bcrypt": "^5.1.1",
         "cookie-parser": "~1.4.4",
         "cors": "^2.8.5",
