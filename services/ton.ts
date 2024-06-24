@@ -33,8 +33,8 @@ export async function openWallet(mnemonic: string[], testnet: boolean): Promise<
 export const transferAction = async (sender: OpenedWallet, to: string | Address, toAmount: number | string | bigint) => {
     const minterAddress = Address.parse(process.env.JETTON_MINTER_ADDRESS!);
     const toAddress: Address = typeof to === 'string' ? Address.parse(to) : to;
-    const nanoTransfer = toNano(toAmount);
-
+    const nanoTransfer = toNano(toAmount) / 10000n; // 1 point = 0.001 jetton
+    console.log('nanoTransfer', nanoTransfer)
     const response = await sender.client.runMethod(
         minterAddress,
         'get_wallet_address',

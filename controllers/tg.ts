@@ -143,7 +143,7 @@ async function claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         if (!earnings || earnings!.tap_points.toString() === '0') throw ("Not enough point");
         console.log('earnings', earnings!.tap_points.toString());
         const wallet = await openWallet(process.env.MNEMONIC!.split(" "), Number(process.env.TESTNET) === 1);
-        const transferAmount = earnings.tap_points / 100000n; // 1 point = 0.0001 jetton
+        const transferAmount = earnings.tap_points;
         const seqno = await transferAction(wallet, toAddress, transferAmount);
         const jWallet = await getJettonAddress(wallet, toAddress);
         console.log('jWallet', jWallet.toString());
