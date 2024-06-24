@@ -85,20 +85,25 @@ export const getJettonAddress = async (openedWallet: OpenedWallet, address: Addr
 }
 
 export const getBalance = async (sender: OpenedWallet, jWallet: Address) => {
-    const isDeployed = await sender.client.isContractDeployed(jWallet);
-    if (!isDeployed)
+    try {
+        const isDeployed = await sender.client.isContractDeployed(jWallet);
+        if (!isDeployed)
+            return 0;
+    
+        console.log('isDeployed', isDeployed);
+    
+        const response = await sender.client.runMethod(
+            jWallet,
+            'get_wallet_data',
+            []
+        );
+        const balance = response.stack.readBigNumber();
+    
+        return balance;
+    } catch (error) {
+        console.log('make request failed');
         return 0;
-
-    console.log('isDeployed', isDeployed);
-
-    const response = await sender.client.runMethod(
-        jWallet,
-        'get_wallet_data',
-        []
-    );
-    const balance = response.stack.readBigNumber();
-
-    return balance;
+    }
 }
 
 export const waitForStateChange = async <T>(cb: () => Promise<T>, maxRetries = 20): Promise<T> => {
