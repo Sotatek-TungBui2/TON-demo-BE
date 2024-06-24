@@ -5,7 +5,7 @@ import prisma from "../config/dbClient";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
-import { openWallet, transferAction } from "../services/ton";
+import { getBalance, getJettonAddress, openWallet, transferAction, waitForStateChange } from "../services/ton";
 
 // function isMobileDevice(userAgent: string) {
 //     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -141,10 +141,16 @@ async function claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
             }
         })
         if (!earnings || earnings!.tap_points.toString() === '0') throw ("Not enough point");
+        console.log('earnings', earnings!.tap_points.toString());
         const wallet = await openWallet(process.env.MNEMONIC!.split(" "), Number(process.env.TESTNET) === 1);
-        const seqno = await transferAction(wallet, toAddress, earnings!.tap_points)
+        const transferAmount = earnings.tap_points / 100000n; // 1 point = 0.0001 jetton
+        const seqno = await transferAction(wallet, toAddress, transferAmount);
+        const jWallet = await getJettonAddress(wallet, toAddress);
+        console.log('jWallet', jWallet.toString());
+        await waitForStateChange(
+            async () => getBalance(wallet, jWallet)
+        );
         console.log('seqno', seqno);
-        console.log(earnings!.tap_points.toString());
         await prisma.earnings.updateMany({
             where: {
                 teleid: req.user.id
