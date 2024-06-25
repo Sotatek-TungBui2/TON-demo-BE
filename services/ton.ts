@@ -1,6 +1,5 @@
-import { ClaimMaster } from './claim/ClaimMaster';
 import { mnemonicToPrivateKey, KeyPair } from "@ton/crypto"
-import { Address, Cell, Contract, OpenedContract, SendMode, StateInit, TonClient, WalletContractV4, beginCell, contractAddress, internal, toNano } from "@ton/ton";
+import { Address, Cell, Contract, OpenedContract, SendMode, TonClient, WalletContractV4, beginCell, contractAddress, internal, toNano } from "@ton/ton";
 import { JettonWallet } from "./jetton/JettonWallet";
 
 export type OpenedWallet = {

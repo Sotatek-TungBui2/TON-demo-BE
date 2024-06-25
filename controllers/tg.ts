@@ -245,16 +245,30 @@ const getProof = (dict: Dictionary<bigint, ClaimMasterEntry>, proofIndex: bigint
 
 const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
     // there must be at least odds entries
-    const entries: ClaimMasterEntry[] = _entries.concat([
+    // const entries: ClaimMasterEntry[] = _entries.concat([
+    //     {
+    //         address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
+    //         amount: BigInt(Math.floor(Math.random() * 1e9)),
+    //     },
+    //     {
+    //         address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
+    //         amount: BigInt(Math.floor(Math.random() * 1e9)),
+    //     },
+    // ]);
+    const entries: ClaimMasterEntry[] = [
         {
-            address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
-            amount: toNano(Math.floor(Math.random() * 1000)),
+            address: Address.parse('0QBD3S5fi16Na85F-JERmcSGnOLkIHyU5y7jG_OPPvH3KHHB'),
+            amount: toNano('1'),
+        },
+        {
+            address: Address.parse('0QAq8gmVecI9v5duWUvWKtI70raAgeM8kUWZNJ2ECY8CKXDP'),
+            amount: toNano('2.5'),
         },
         {
             address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
-            amount: toNano(Math.floor(Math.random() * 1000)),
+            amount: toNano('1.5'),
         },
-    ]);
+    ];
     console.log(entries);
     const dict = generateEntriesDictionary(entries);
     const dictCell = beginCell().storeDictDirect(dict).endCell();
