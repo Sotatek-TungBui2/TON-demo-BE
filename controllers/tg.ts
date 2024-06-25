@@ -5,7 +5,10 @@ import prisma from "../config/dbClient";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
-import { getBalance, getJettonAddress, openWallet, transferAction, waitForStateChange } from "../services/ton";
+import { deployContract, getBalance, getJettonAddress, openWallet, transferAction, waitForStateChange } from "../services/ton";
+import { ClaimMaster, ClaimMasterEntry, generateEntriesDictionary } from "../services/claim/ClaimMaster";
+import { Address, Cell, Dictionary, beginCell, toNano } from "@ton/core";
+import { ClaimHelper } from "../services/claim/ClaimHelper";
 
 // function isMobileDevice(userAgent: string) {
 //     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -168,7 +171,147 @@ async function claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         next(err);
     }
 }
+
+async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
+    try {
+        const { amount, to } = req.body;
+        console.log(to);
+        
+        const earnings = await prisma.earnings.findFirst({
+            where: {
+                teleid: req.user.id,
+            }
+        });
+        if (!earnings) throw ("Not found earning");
+        if (BigInt(earnings.tap_points) < BigInt(amount)) throw ("Not enough point");
+        const transferAmount = toNano(amount) / 10000n; // 1 point = 0.001 jetton
+
+        const wallet = await openWallet(process.env.MNEMONIC!.split(" "), Number(process.env.TESTNET) === 1);
+        const merkle = createMerkleTree([{
+            address: Address.parse(to),
+            amount: transferAmount,
+        }]);
+        const claimMaster = ClaimMaster.createFromConfig(
+            {
+                merkleRoot: merkle.merkleRoot,
+                helperCode: Cell.fromBoc(Buffer.from(ClaimHelper.hexCode, 'hex'))[0],
+            },
+            Cell.fromBoc(Buffer.from(ClaimMaster.hexCode, 'hex'))[0]
+        )
+        await deployContract(claimMaster, wallet);
+        await waitForStateChange(
+            async () => wallet.contract.getSeqno()
+        );
+        await prisma.earnings.update({
+            where: { id: earnings.id },
+            data: { tap_points: BigInt(earnings.tap_points) - BigInt(amount) }
+        });
+        await prisma.request.create({
+            data: {
+                amount: amount,
+                merkleProof: getProof(merkle.dict, 0n).toBoc().toString('hex'),
+                teleid: earnings.teleid,
+                claimMaster: claimMaster.address.toString(),
+                isClaimed: 0,
+            }
+        })
+        console.log('claimMaster', claimMaster.address.toString());
+
+        // fund to ClaimMaster
+        const claimMasterJettonWallet = await getJettonAddress(wallet, claimMaster.address);
+        console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
+        
+        await transferAction(wallet, claimMasterJettonWallet, toNano(amount) / 1000n);
+        const balance = await waitForStateChange(
+            async () => await wallet.contract.getSeqno(),
+            // async () => getBalance(wallet, claimMasterJettonWallet)
+            40,
+        )
+        console.log('funded to ClaimMaster', balance.toString());
+        
+        return res.status(200).json({
+            statusCode: 200,
+            status: "success",
+            message: "Successfully requested claim",
+        });
+    } catch (error) {
+        next(error);   
+    }
+}
+
+const getProof = (dict: Dictionary<bigint, ClaimMasterEntry>, proofIndex: bigint) => {
+    return dict.generateMerkleProof(proofIndex);
+}
+
+const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
+    // there must be at least odds entries
+    const entries: ClaimMasterEntry[] = _entries.concat([
+        {
+            address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
+            amount: toNano(Math.floor(Math.random() * 1000)),
+        },
+        {
+            address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
+            amount: toNano(Math.floor(Math.random() * 1000)),
+        },
+    ]);
+    console.log(entries);
+    const dict = generateEntriesDictionary(entries);
+    const dictCell = beginCell().storeDictDirect(dict).endCell();
+    console.log(`Dictionary cell (store it somewhere on your backend: ${dictCell.toBoc().toString('base64')}`);
+    const merkleRoot = BigInt('0x' + dictCell.hash().toString('hex'));
+    console.log(`merkleRoot: ${merkleRoot}`);
+
+    return {merkleRoot, dict, dictCell};
+}
+
+async function get_request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
+    let data = await prisma.request.findMany({
+        where: {
+            teleid: req.user.id,
+            isClaimed: 0
+        },
+        orderBy: {
+            id: 'desc',
+        }
+    })
+    // @ts-ignore
+    data = data.map((item) => ({
+        ...item,
+        amount: item.amount.toString(),
+        teleid: undefined,
+    }))
+    return res.status(200).json({
+        statusCode: 200,
+        status: "success",
+        data: data,
+    });
+}
+
+async function claimed(req: ApiRequest, res: ApiResponse, next: ApiNext) {    
+    if (isNaN(req.params.id)) {
+        return next(Error("Invalid id"));
+    }
+    await prisma.request.updateMany({
+        where: {
+            teleid: req.user.id,
+            isClaimed: 0,
+            id: parseInt(req.params.id)
+        },
+        data: {
+            isClaimed: 1
+        }
+    })
+    return res.status(200).json({
+        statusCode: 200,
+        status: "success",
+    });
+}
+
 export default {
     auth,
     claim,
+    request_claim,
+    get_request_claim,
+    claimed
 };

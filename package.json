@@ -6,11 +6,12 @@
         "start": "npm run db:generate && tsc && node dist/app.js",
         "dev": "nodemon app.ts",
         "db:generate": "prisma generate",
-        "db:migrate-dev": "prisma migrate dev"
+        "db:migrate": "prisma migrate"
     },
     "dependencies": {
         "@prisma/client": "^5.15.1",
-        "@ton/core": "^0.56.3",
+        "@ton/core": "^0.53.0",
+        "@ton/crypto": "^3.2.0",
         "@ton/ton": "^13.11.2",
         "bcrypt": "^5.1.1",
         "cookie-parser": "~1.4.4",

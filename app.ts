@@ -37,6 +37,7 @@ app.use(function (err: any, req: ApiRequest, res: ApiResponse, next: ApiNext) {
     return res.status(err.status || 500).json({
         statusCode: 500,
         status: "error",
+        errorMessage: err.message,
         message: "Internal server error",
     });
 });

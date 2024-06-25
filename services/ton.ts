@@ -1,6 +1,7 @@
+import { ClaimMaster } from './claim/ClaimMaster';
 import { mnemonicToPrivateKey, KeyPair } from "@ton/crypto"
-import { Address, OpenedContract, SendMode, TonClient, WalletContractV4, beginCell, internal, toNano } from "@ton/ton";
-import { JettonWallet } from "./jetton/jettonWallet";
+import { Address, Cell, Contract, OpenedContract, SendMode, StateInit, TonClient, WalletContractV4, beginCell, contractAddress, internal, toNano } from "@ton/ton";
+import { JettonWallet } from "./jetton/JettonWallet";
 
 export type OpenedWallet = {
     contract: OpenedContract<WalletContractV4>;
@@ -128,4 +129,44 @@ export const waitForStateChange = async <T>(cb: () => Promise<T>, maxRetries = 2
     }
 
     return stateAfter;
+}
+
+
+interface ContractDeployDetails {
+    deployer: Address;
+    value: bigint;
+    code: Cell;
+    data: Cell;
+    message?: Cell;
+    dryRun?: boolean;
+}
+
+export function addressForContract(params: ContractDeployDetails) {
+    return contractAddress(
+        0,
+        {
+            code: params.code,
+            data: params.data,
+        }
+    );
+}
+export async function deployContract(
+    contract: Contract,
+    openedWallet: OpenedWallet,
+): Promise<number> {
+    const seqno = await openedWallet.contract.getSeqno();
+    await openedWallet.contract.sendTransfer({
+      seqno,
+      secretKey: openedWallet.keyPair.secretKey,
+      messages: [
+        internal({
+          value: "0.05",
+          to: contract.address,
+          init: contract.init,
+        }),
+      ],
+      sendMode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY,
+    });
+
+    return seqno;
 }
