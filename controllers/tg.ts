@@ -198,7 +198,14 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
             },
             Cell.fromBoc(Buffer.from(ClaimMaster.hexCode, 'hex'))[0]
         )
-        await deployContract(claimMaster, wallet);
+
+        const claimMasterJettonWallet = await getJettonAddress(wallet, claimMaster.address);
+        console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
+        await deployContract(
+            claimMaster,
+            beginCell().storeUint(0x610ca46c, 32).storeUint(0, 64).storeAddress(claimMasterJettonWallet).endCell(),
+            wallet,
+        );
         await waitForStateChange(
             async () => wallet.contract.getSeqno()
         );
@@ -218,9 +225,6 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         console.log('claimMaster', claimMaster.address.toString());
 
         // fund to ClaimMaster
-        const claimMasterJettonWallet = await getJettonAddress(wallet, claimMaster.address);
-        console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
-        
         await transferAction(wallet, claimMasterJettonWallet, toNano(amount) / 1000n);
         const balance = await waitForStateChange(
             async () => await wallet.contract.getSeqno(),
@@ -245,30 +249,16 @@ const getProof = (dict: Dictionary<bigint, ClaimMasterEntry>, proofIndex: bigint
 
 const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
     // there must be at least odds entries
-    // const entries: ClaimMasterEntry[] = _entries.concat([
-    //     {
-    //         address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
-    //         amount: BigInt(Math.floor(Math.random() * 1e9)),
-    //     },
-    //     {
-    //         address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
-    //         amount: BigInt(Math.floor(Math.random() * 1e9)),
-    //     },
-    // ]);
-    const entries: ClaimMasterEntry[] = [
+    const entries: ClaimMasterEntry[] = _entries.concat([
         {
-            address: Address.parse('0QBD3S5fi16Na85F-JERmcSGnOLkIHyU5y7jG_OPPvH3KHHB'),
-            amount: toNano('1'),
-        },
-        {
-            address: Address.parse('0QAq8gmVecI9v5duWUvWKtI70raAgeM8kUWZNJ2ECY8CKXDP'),
-            amount: toNano('2.5'),
+            address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
+            amount: toNano(getRandomInt(1, 10). toString()),
         },
         {
             address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
-            amount: toNano('1.5'),
+            amount: toNano(getRandomInt(1, 10). toString()),
         },
-    ];
+    ]);
     console.log(entries);
     const dict = generateEntriesDictionary(entries);
     const dictCell = beginCell().storeDictDirect(dict).endCell();
@@ -320,6 +310,12 @@ async function claimed(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         statusCode: 200,
         status: "success",
     });
+}
+
+function getRandomInt(min: number, max: number) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 export default {

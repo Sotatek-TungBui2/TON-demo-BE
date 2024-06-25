@@ -151,6 +151,7 @@ export function addressForContract(params: ContractDeployDetails) {
 }
 export async function deployContract(
     contract: Contract,
+    body: Cell,
     openedWallet: OpenedWallet,
 ): Promise<number> {
     const seqno = await openedWallet.contract.getSeqno();
@@ -162,6 +163,7 @@ export async function deployContract(
           value: "0.05",
           to: contract.address,
           init: contract.init,
+          body: body,
         }),
       ],
       sendMode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY,
