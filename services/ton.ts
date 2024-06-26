@@ -78,7 +78,7 @@ export const mintAction = async (sender: OpenedWallet, to: string | Address, toA
         secretKey: sender.keyPair.secretKey,
         messages: [
             internal({
-                value: "0.1",
+                value: "0.5",
                 to: jettonMinter,
                 body: JettonMinter.mintMessage(
                     sender.wallet.address,

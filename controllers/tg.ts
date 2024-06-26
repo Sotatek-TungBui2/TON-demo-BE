@@ -204,6 +204,7 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
 
         //////// fund to ClaimMaster Jetton Wallet
+        console.log("Funding ClaimMaster Jetton Wallet ...");
         await mintAction(wallet, claimMaster.address, amount);
         await waitForStateChange(
             // async () => await wallet.contract.getSeqno(),
@@ -213,6 +214,7 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         console.log('funded to ClaimMaster');
         ////////
 
+        /////
         console.log("Deploying ClaimMaster ...")
         await deployContract(
             claimMaster,
@@ -222,8 +224,8 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         await waitForStateChange(
             async () => wallet.contract.getSeqno()
         );
-        console.log('Done');
-        
+        console.log('Deployed ClaimMaster');
+        /////
 
         await prisma.earnings.update({
             where: { id: earnings.id },
@@ -254,11 +256,11 @@ const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
     const entries: ClaimMasterEntry[] = _entries.concat([
         {
             address: Address.parse('0QCmx_TA6aYafVsuXn6zB7q0R9Plp9NccKqWSYxbCnI6zC6G'),
-            amount: toNano(getRandomInt(1, 10). toString()),
+            amount: toNano(getRandomInt(1, 99). toString()),
         },
         {
             address: Address.parse('0QCvI7UEQXDoehtYlWa_aJp9ijj6Mj9iTO5e736-Fxv-cUmr'),
-            amount: toNano(getRandomInt(1, 10). toString()),
+            amount: toNano(getRandomInt(1, 99). toString()),
         },
     ]);
     console.log(entries);
