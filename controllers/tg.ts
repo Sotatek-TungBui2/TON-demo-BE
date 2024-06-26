@@ -5,7 +5,7 @@ import prisma from "../config/dbClient";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
-import { deployContract, getBalance, getJettonAddress, openWallet, transferAction, waitForStateChange } from "../services/ton";
+import { deployContract, getBalance, getJettonAddress, mintAction, openWallet, transferAction, waitForStateChange } from "../services/ton";
 import { ClaimMaster, ClaimMasterEntry, generateEntriesDictionary } from "../services/claim/ClaimMaster";
 import { Address, Cell, Dictionary, beginCell, toNano } from "@ton/core";
 import { ClaimHelper } from "../services/claim/ClaimHelper";
@@ -191,6 +191,7 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
             address: Address.parse(to),
             amount: transferAmount,
         }]);
+
         const claimMaster = ClaimMaster.createFromConfig(
             {
                 merkleRoot: merkle.merkleRoot,
@@ -198,9 +199,21 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
             },
             Cell.fromBoc(Buffer.from(ClaimMaster.hexCode, 'hex'))[0]
         )
-
+        console.log('claimMaster', claimMaster.address.toString());
         const claimMasterJettonWallet = await getJettonAddress(wallet, claimMaster.address);
         console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
+
+        //////// fund to ClaimMaster Jetton Wallet
+        await mintAction(wallet, claimMaster.address, amount);
+        await waitForStateChange(
+            // async () => await wallet.contract.getSeqno(),
+            async () => getBalance(wallet, claimMasterJettonWallet),
+            40,
+        )
+        console.log('funded to ClaimMaster');
+        ////////
+
+        console.log("Deploying ClaimMaster ...")
         await deployContract(
             claimMaster,
             beginCell().storeUint(0x610ca46c, 32).storeUint(0, 64).storeAddress(claimMasterJettonWallet).endCell(),
@@ -209,6 +222,9 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         await waitForStateChange(
             async () => wallet.contract.getSeqno()
         );
+        console.log('Done');
+        
+
         await prisma.earnings.update({
             where: { id: earnings.id },
             data: { tap_points: BigInt(earnings.tap_points) - BigInt(amount) }
@@ -216,22 +232,12 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         await prisma.request.create({
             data: {
                 amount: amount,
-                merkleProof: getProof(merkle.dict, 0n).toBoc().toString('hex'),
+                merkleProof: merkle.proofs[0].toBoc().toString('hex'),
                 teleid: earnings.teleid,
                 claimMaster: claimMaster.address.toString(),
                 isClaimed: 0,
             }
         })
-        console.log('claimMaster', claimMaster.address.toString());
-
-        // fund to ClaimMaster
-        await transferAction(wallet, claimMasterJettonWallet, toNano(amount) / 1000n);
-        const balance = await waitForStateChange(
-            async () => await wallet.contract.getSeqno(),
-            // async () => getBalance(wallet, claimMasterJettonWallet)
-            40,
-        )
-        console.log('funded to ClaimMaster', balance.toString());
         
         return res.status(200).json({
             statusCode: 200,
@@ -241,10 +247,6 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
     } catch (error) {
         next(error);   
     }
-}
-
-const getProof = (dict: Dictionary<bigint, ClaimMasterEntry>, proofIndex: bigint) => {
-    return dict.generateMerkleProof(proofIndex);
 }
 
 const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
@@ -265,8 +267,12 @@ const createMerkleTree = (_entries: ClaimMasterEntry[]) => {
     console.log(`Dictionary cell (store it somewhere on your backend: ${dictCell.toBoc().toString('base64')}`);
     const merkleRoot = BigInt('0x' + dictCell.hash().toString('hex'));
     console.log(`merkleRoot: ${merkleRoot}`);
+    
+    const proofs = entries.map((_, index) => {
+        return dict.generateMerkleProof(BigInt(index))
+    })
 
-    return {merkleRoot, dict, dictCell};
+    return {merkleRoot, dict, dictCell, proofs};
 }
 
 async function get_request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {

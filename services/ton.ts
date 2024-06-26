@@ -1,6 +1,7 @@
 import { mnemonicToPrivateKey, KeyPair } from "@ton/crypto"
 import { Address, Cell, Contract, OpenedContract, SendMode, TonClient, WalletContractV4, beginCell, contractAddress, internal, toNano } from "@ton/ton";
 import { JettonWallet } from "./jetton/JettonWallet";
+import { JettonMinter } from "./jetton/JettonMinter";
 
 export type OpenedWallet = {
     contract: OpenedContract<WalletContractV4>;
@@ -57,6 +58,34 @@ export const transferAction = async (sender: OpenedWallet, to: string | Address,
                         null,
                         toNano('0.05'),
                         null
+                ),
+            }),
+        ],
+        sendMode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY,
+    });
+
+    return seqno;
+}
+
+export const mintAction = async (sender: OpenedWallet, to: string | Address, toAmount: number | string | bigint) => {
+    const jettonMinter = Address.parse(process.env.JETTON_MINTER_ADDRESS!);
+    const toAddress: Address = typeof to === 'string' ? Address.parse(to) : to;
+    const nanoTransfer = toNano(toAmount) / 10000n; // 1 point = 0.001 jetton
+
+    const seqno = await sender.contract.getSeqno();
+    await sender.contract.sendTransfer({
+        seqno,
+        secretKey: sender.keyPair.secretKey,
+        messages: [
+            internal({
+                value: "0.1",
+                to: jettonMinter,
+                body: JettonMinter.mintMessage(
+                    sender.wallet.address,
+                    toAddress,
+                    nanoTransfer,
+                    toNano('0.05'),
+                    toNano('1.015'),
                 ),
             }),
         ],
@@ -160,13 +189,13 @@ export async function deployContract(
       secretKey: openedWallet.keyPair.secretKey,
       messages: [
         internal({
-          value: "0.05",
+          value: toNano("0.05"),
           to: contract.address,
           init: contract.init,
           body: body,
         }),
       ],
-      sendMode: SendMode.IGNORE_ERRORS + SendMode.PAY_GAS_SEPARATELY,
+      sendMode: SendMode.PAY_GAS_SEPARATELY,
     });
 
     return seqno;

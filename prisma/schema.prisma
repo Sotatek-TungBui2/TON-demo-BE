@@ -58,6 +58,7 @@ model Request {
   id          Int    @id @default(autoincrement())
   amount      BigInt @default(0)
   merkleProof String
+  treeIndex   Int    @default(0)
   claimMaster String
   teleid      BigInt
   isClaimed   Int

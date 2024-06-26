@@ -3,6 +3,7 @@ CREATE TABLE "requests" (
     "id" SERIAL NOT NULL,
     "amount" BIGINT NOT NULL DEFAULT 0,
     "merkleProof" TEXT NOT NULL,
+    "treeIndex" INTEGER NOT NULL DEFAULT 0,
     "claimMaster" TEXT NOT NULL,
     "teleid" BIGINT NOT NULL,
     "isClaimed" INTEGER NOT NULL,
