@@ -5,7 +5,7 @@ import prisma from "../config/dbClient";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
-import { deployContract, getBalance, getJettonAddress, mintAction, openWallet, transferAction, waitForStateChange } from "../services/ton";
+import { deployContract, getBalance, getJettonAddress, mintAction, openWallet, sleep, transferAction, waitForStateChange } from "../services/ton";
 import { ClaimMaster, ClaimMasterEntry, generateEntriesDictionary } from "../services/claim/ClaimMaster";
 import { Address, Cell, Dictionary, beginCell, toNano } from "@ton/core";
 import { ClaimHelper } from "../services/claim/ClaimHelper";
@@ -202,7 +202,7 @@ async function request_claim(req: ApiRequest, res: ApiResponse, next: ApiNext) {
         console.log('claimMaster', claimMaster.address.toString());
         const claimMasterJettonWallet = await getJettonAddress(wallet, claimMaster.address);
         console.log('claimMasterJettonWallet', claimMasterJettonWallet.toString());
-
+        await sleep(20000);
         //////// fund to ClaimMaster Jetton Wallet
         console.log("Funding ClaimMaster Jetton Wallet ...");
         await mintAction(wallet, claimMaster.address, amount);
